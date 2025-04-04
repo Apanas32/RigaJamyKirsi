@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Карта Ям Риги 🍒 (на Firebase)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    // Конфигурация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDrHy10idobkL5My6UJqLUZMv34946Sx0c",
+      authDomain: "rigakirsi.firebaseapp.com",
+      databaseURL: "https://rigakirsi-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "rigakirsi",
+      storageBucket: "rigakirsi.firebasestorage.app",
+      messagingSenderId: "874490900592",
+      appId: "1:874490900592:web:8e6f6c713d3902396984b5",
+      measurementId: "G-KR0RY96K8K"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const map = L.map('map').setView([56.9496, 24.1052], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    const cherryIcon = L.divIcon({ html: '🍒', className: '', iconSize: [24, 24] });
+
+    const markers = {};
+
+    db.ref("cherries").on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      // Удаляем старые маркеры
+      Object.keys(markers).forEach((key) => map.removeLayer(markers[key]));
+
+      // Добавляем новые
+      Object.keys(data).forEach((key) => {
+        const { lat, lng } = data[key];
+        const marker = L.marker([lat, lng], { icon: cherryIcon }).addTo(map);
+        marker.on("click", () => db.ref("cherries/" + key).remove());
+        markers[key] = marker;
+      });
+    });
+
+    map.on("click", function(e) {
+      const newRef = db.ref("cherries").push();
+      newRef.set({ lat: e.latlng.lat, lng: e.latlng.lng });
+    });
+  </script>
+</body>
+</html>
